@@ -1,11 +1,11 @@
 name: 'ci'
 on:
   pull_request:
-    branches:
-      - main
   push:
     branches:
       - main
+
+permissions: write-all
 
 jobs:
   ci:
@@ -19,15 +19,37 @@ jobs:
       - run: npm run format:check >> "${GITHUB_STEP_SUMMARY}"
       - run: npm run lint
       - run: npm run test >> "${GITHUB_STEP_SUMMARY}"
+
       - uses: ./
+        name: Coverage by Package
         id: code_coverage_report_action
         with:
           filename: 'coverage/clover.xml'
           fail_on_negative_difference: true
           artifact_download_workflow_names: 'ci,cron'
-      - name: Add Coverage PR Comment
-        uses: marocchino/sticky-pull-request-comment@v2
+          markdown_filename: code-coverage-diff
+
+      - name: Publish package coverage validation results
+        uses: marocchino/sticky-pull-request-comment@v2.6.2
         if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
         with:
           recreate: true
-          path: code-coverage-results.md
+          path: code-coverage-diff.md
+
+      - uses: ./
+        name: Overall Coverage
+        id: overall_code_coverage_report_action
+        with:
+          filename: 'coverage/clover.xml'
+          fail_on_negative_overall_difference: true
+          artifact_download_workflow_names: 'ci,cron'
+          markdown_filename: overall-code-coverage-diff
+          report_overall_coverage: true
+          report_package_coverage: false
+
+      - name: Publish overall coverage validation results
+        uses: marocchino/sticky-pull-request-comment@v2.6.2
+        if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
+        with:
+          recreate: true
+          path: overall-code-coverage-diff.md

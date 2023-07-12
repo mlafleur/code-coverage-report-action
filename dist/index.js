@@ -24260,7 +24260,7 @@ function run() {
 }
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename } = (0, utils_1.getInputs)();
+        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, reportOverallCoverage, reportPackageCoverage, failOnNegativeOverallDifference } = (0, utils_1.getInputs)();
         const map = Object.entries(headCoverage.files).map(([hash, file]) => {
             if (baseCoverage === null) {
                 return [
@@ -24289,6 +24289,14 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         if (overallCoverageFailThreshold > headCoverage.coverage) {
             core.setFailed(`FAIL: Overall coverage of ${headCoverage.coverage.toString()}% below minimum threshold of ${overallCoverageFailThreshold.toString()}%`);
         }
+        const overallDifferencePercentage = baseCoverage
+            ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
+            : null;
+        if (failOnNegativeOverallDifference &&
+            overallDifferencePercentage !== null &&
+            overallDifferencePercentage < 0) {
+            core.setFailed(`Coverage dropped by ${overallDifferencePercentage}%`);
+        }
         let color = 'grey';
         if (headCoverage.coverage < fileCoverageErrorMin) {
             color = 'red';
@@ -24301,6 +24309,31 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
             color = 'green';
         }
         const summary = core.summary.addHeading('Code Coverage Report');
+        if (reportOverallCoverage)
+            summary
+                .addTable(yield generateOverallCoverageReport(headCoverage.coverage, baseCoverage === null || baseCoverage === void 0 ? void 0 : baseCoverage.coverage, overallDifferencePercentage))
+                .addBreak();
+        if (reportPackageCoverage)
+            summary
+                .addTable(yield generatePackageCoverageReport(baseCoverage, map))
+                .addBreak();
+        if (badge)
+            summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=flat`, 'Code Coverage');
+        summary.addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
+        //If this is run after write the buffer is empty
+        core.info(`Writing results to ${markdownFilename}.md`);
+        yield (0, promises_1.writeFile)(`${markdownFilename}.md`, summary.stringify());
+        core.setOutput('file', `${markdownFilename}.md`);
+        core.setOutput('coverage', headCoverage.coverage);
+        core.info(`Writing job summary`);
+        yield summary.write();
+    });
+}
+/**
+ * Generate a coverage summary by file
+ */
+function generatePackageCoverageReport(baseCoverage = null, map) {
+    return __awaiter(this, void 0, void 0, function* () {
         const headers = baseCoverage === null
             ? [
                 { data: 'Package', header: true },
@@ -24312,20 +24345,36 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 { data: 'New Coverage', header: true },
                 { data: 'Difference', header: true }
             ];
-        if (badge) {
-            summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=flat`, 'Code Coverage');
-        }
-        summary
-            .addTable([headers, ...map])
-            .addBreak()
-            .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
-        //If this is run after write the buffer is empty
-        core.info(`Writing results to ${markdownFilename}.md`);
-        yield (0, promises_1.writeFile)(`${markdownFilename}.md`, summary.stringify());
-        core.setOutput('file', `${markdownFilename}.md`);
-        core.setOutput('coverage', headCoverage.coverage);
-        core.info(`Writing job summary`);
-        yield summary.write();
+        return [headers, ...map];
+    });
+}
+/**
+ * Generate summary for the overall coverage
+ */
+function generateOverallCoverageReport(headCoverage, baseCoverage = null, overallDifferencePercentage) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { overallCoverageFailThreshold } = (0, utils_1.getInputs)();
+        return baseCoverage
+            ? [
+                [
+                    { data: 'New Coverage', header: true },
+                    { data: 'Base Coverage', header: true },
+                    { data: 'Difference', header: true }
+                ],
+                [
+                    `${(0, utils_1.colorizePercentageByThreshold)(headCoverage, 0, overallCoverageFailThreshold)}`,
+                    baseCoverage
+                        ? `${(0, utils_1.colorizePercentageByThreshold)(baseCoverage, 0, overallCoverageFailThreshold)}`
+                        : '',
+                    `${(0, utils_1.colorizePercentageByThreshold)(overallDifferencePercentage)}`
+                ]
+            ]
+            : [
+                [{ data: 'New Coverage', header: true }],
+                [
+                    `${(0, utils_1.colorizePercentageByThreshold)(headCoverage, 0, overallCoverageFailThreshold)}`
+                ]
+            ];
     });
 }
 run();
@@ -24991,6 +25040,11 @@ function getInputs() {
     if (!artifactName.includes('%name%')) {
         throw new Error('artifact_name is missing %name% variable');
     }
+    const failOnNegativeOverallDifference = core.getInput('fail_on_negative_overall_difference') === 'true'
+        ? true
+        : false;
+    const reportOverallCoverage = core.getInput('report_overall_coverage') === 'true' ? true : false;
+    const reportPackageCoverage = core.getInput('report_package_coverage') === 'false' ? false : true;
     const tempArtifactDownloadWorkflowNames = core.getInput('artifact_download_workflow_names');
     const artifactDownloadWorkflowNames = tempArtifactDownloadWorkflowNames !== ''
         ? tempArtifactDownloadWorkflowNames.split(',').map(n => n.trim())
@@ -25005,7 +25059,10 @@ function getInputs() {
         failOnNegativeDifference,
         markdownFilename,
         artifactDownloadWorkflowNames,
-        artifactName
+        artifactName,
+        failOnNegativeOverallDifference,
+        reportOverallCoverage,
+        reportPackageCoverage
     };
     return inputs;
 }

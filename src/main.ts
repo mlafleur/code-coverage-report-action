@@ -77,8 +77,12 @@ async function generateMarkdown(
     fileCoverageErrorMin,
     fileCoverageWarningMax,
     badge,
-    markdownFilename
+    markdownFilename,
+    reportOverallCoverage,
+    reportPackageCoverage,
+    failOnNegativeOverallDifference
   } = getInputs()
+
   const map = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
       return [
@@ -131,6 +135,18 @@ async function generateMarkdown(
     )
   }
 
+  const overallDifferencePercentage = baseCoverage
+    ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
+    : null
+
+  if (
+    failOnNegativeOverallDifference &&
+    overallDifferencePercentage !== null &&
+    overallDifferencePercentage < 0
+  ) {
+    core.setFailed(`Coverage dropped by ${overallDifferencePercentage}%`)
+  }
+
   let color = 'grey'
   if (headCoverage.coverage < fileCoverageErrorMin) {
     color = 'red'
@@ -145,6 +161,51 @@ async function generateMarkdown(
 
   const summary = core.summary.addHeading('Code Coverage Report')
 
+  if (reportOverallCoverage)
+    summary
+      .addTable(
+        await generateOverallCoverageReport(
+          headCoverage.coverage,
+          baseCoverage?.coverage,
+          overallDifferencePercentage
+        )
+      )
+      .addBreak()
+
+  if (reportPackageCoverage)
+    summary
+      .addTable(await generatePackageCoverageReport(baseCoverage, map))
+      .addBreak()
+
+  if (badge)
+    summary.addImage(
+      `https://img.shields.io/badge/${encodeURIComponent(
+        `Code Coverage-${headCoverage.coverage}%-${color}`
+      )}?style=flat`,
+      'Code Coverage'
+    )
+
+  summary.addRaw(
+    `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
+  )
+
+  //If this is run after write the buffer is empty
+  core.info(`Writing results to ${markdownFilename}.md`)
+  await writeFile(`${markdownFilename}.md`, summary.stringify())
+  core.setOutput('file', `${markdownFilename}.md`)
+  core.setOutput('coverage', headCoverage.coverage)
+
+  core.info(`Writing job summary`)
+  await summary.write()
+}
+
+/**
+ * Generate a coverage summary by file
+ */
+async function generatePackageCoverageReport(
+  baseCoverage: Coverage | null = null,
+  map: string[][]
+): Promise<(string[] | {data: string; header: boolean}[])[]> {
   const headers =
     baseCoverage === null
       ? [
@@ -157,30 +218,52 @@ async function generateMarkdown(
           {data: 'New Coverage', header: true},
           {data: 'Difference', header: true}
         ]
+  return [headers, ...map]
+}
 
-  if (badge) {
-    summary.addImage(
-      `https://img.shields.io/badge/${encodeURIComponent(
-        `Code Coverage-${headCoverage.coverage}%-${color}`
-      )}?style=flat`,
-      'Code Coverage'
-    )
-  }
-  summary
-    .addTable([headers, ...map])
-    .addBreak()
-    .addRaw(
-      `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
-    )
+/**
+ * Generate summary for the overall coverage
+ */
+async function generateOverallCoverageReport(
+  headCoverage: number,
+  baseCoverage: number | null = null,
+  overallDifferencePercentage: number | null
+): Promise<(string[] | {data: string; header: boolean}[])[]> {
+  const {overallCoverageFailThreshold} = getInputs()
 
-  //If this is run after write the buffer is empty
-  core.info(`Writing results to ${markdownFilename}.md`)
-  await writeFile(`${markdownFilename}.md`, summary.stringify())
-  core.setOutput('file', `${markdownFilename}.md`)
-  core.setOutput('coverage', headCoverage.coverage)
-
-  core.info(`Writing job summary`)
-  await summary.write()
+  return baseCoverage
+    ? [
+        [
+          {data: 'New Coverage', header: true},
+          {data: 'Base Coverage', header: true},
+          {data: 'Difference', header: true}
+        ],
+        [
+          `${colorizePercentageByThreshold(
+            headCoverage,
+            0,
+            overallCoverageFailThreshold
+          )}`,
+          baseCoverage
+            ? `${colorizePercentageByThreshold(
+                baseCoverage,
+                0,
+                overallCoverageFailThreshold
+              )}`
+            : '',
+          `${colorizePercentageByThreshold(overallDifferencePercentage)}`
+        ]
+      ]
+    : [
+        [{data: 'New Coverage', header: true}],
+        [
+          `${colorizePercentageByThreshold(
+            headCoverage,
+            0,
+            overallCoverageFailThreshold
+          )}`
+        ]
+      ]
 }
 
 run()

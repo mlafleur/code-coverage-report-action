@@ -2,7 +2,7 @@ name: 'Code Coverage Report Difference'
 description: 'Provides code coverage reports with the ability to see differences in a pull requests utilizing markdown files.'
 author: 'ClearlyIP'
 branding:
-  icon: 'file-text'  
+  icon: 'file-text'
   color: 'blue'
 inputs:
   filename:
@@ -36,6 +36,10 @@ inputs:
     description: 'Fail if any difference is a negative value (Coverage was reduced)'
     required: false
     default: 'false'
+  fail_on_negative_overall_difference:
+    description: 'Fail if the overall difference is a negative value (Coverage was reduced)'
+    required: false
+    default: 'false'
   artifact_download_workflow_names:
     description: 'Comma Separated list of workflow names to look for artifacts in. If left empty will only look at the current workflow'
     required: false
@@ -43,6 +47,14 @@ inputs:
     description: 'Artifact name. Use %name% as a placeholder (must be included!)'
     required: false
     default: 'coverage-%name%'
+  report_overall_coverage:
+    description: 'Report differences in the overall coverage - true / false (default).'
+    required: false
+    default: 'false'
+  report_package_coverage:
+    description: 'Report differences in coverage for each package - true (default) / false.'
+    required: false
+    default: 'true'
 outputs:
   file:
     description: 'The generated markdown file path'

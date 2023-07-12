@@ -343,6 +343,17 @@ export function getInputs(): Inputs {
     throw new Error('artifact_name is missing %name% variable')
   }
 
+  const failOnNegativeOverallDifference =
+    core.getInput('fail_on_negative_overall_difference') === 'true'
+      ? true
+      : false
+
+  const reportOverallCoverage =
+    core.getInput('report_overall_coverage') === 'true' ? true : false
+
+  const reportPackageCoverage =
+    core.getInput('report_package_coverage') === 'false' ? false : true
+
   const tempArtifactDownloadWorkflowNames = core.getInput(
     'artifact_download_workflow_names'
   )
@@ -361,7 +372,10 @@ export function getInputs(): Inputs {
     failOnNegativeDifference,
     markdownFilename,
     artifactDownloadWorkflowNames,
-    artifactName
+    artifactName,
+    failOnNegativeOverallDifference,
+    reportOverallCoverage,
+    reportPackageCoverage
   }
 
   return inputs

@@ -1,3 +1,4 @@
+import {parse} from 'path'
 import {
   formatArtifactName,
   checkFileExists,
@@ -6,7 +7,9 @@ import {
   determineCommonBasePath,
   escapeRegExp,
   colorizePercentageByThreshold,
-  getInputs
+  getInputs,
+  parseXML,
+  parseCoverage
 } from '../src/utils'
 import {
   expect,
@@ -42,6 +45,22 @@ test('files exists', async () => {
 
   const ret1 = await checkFileExists(__filename + 'bar')
   expect(ret1).toBeFalsy()
+})
+
+test('parse xml', async () => {
+  const ret = await parseXML(__filename)
+  expect(ret).toBeTruthy()
+
+  const ret1 = await parseXML(__filename + 'bar')
+  expect(ret1).toBeFalsy()
+})
+
+test('parse coverage', async () => {
+  const ret = await parseCoverage(__filename)
+  expect(ret).not.toBeNull
+
+  const ret1 = await parseCoverage(__filename + 'bar')
+  expect(ret1).toBeNull
 })
 
 test('created hash', () => {
@@ -109,6 +128,9 @@ test('getInputs', () => {
     failOnNegativeDifference: false,
     markdownFilename: 'code-coverage-results',
     artifactDownloadWorkflowNames: null,
-    artifactName: 'coverage-%name%'
+    artifactName: 'coverage-%name%',
+    reportOverallCoverage: false,
+    reportPackageCoverage: true,
+    failOnNegativeOverallDifference: false
   })
 })
