@@ -8,7 +8,7 @@ import {
   roundPercentage,
   uploadArtifacts
 } from './utils'
-import {Coverage} from './interfaces'
+import {Coverage, CoverageFile} from './interfaces'
 import {writeFile} from 'fs/promises'
 import path from 'path'
 
@@ -78,9 +78,10 @@ async function generateMarkdown(
     fileCoverageWarningMax,
     badge,
     markdownFilename,
-    showOverallDiffRow
+    showOverallDiffRow,
+    excludeUnchanged
   } = getInputs()
-  const map = Object.entries(headCoverage.files).map(([hash, file]) => {
+  let map = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
       return [
         file.relative,
@@ -125,6 +126,12 @@ async function generateMarkdown(
       colorizePercentageByThreshold(differencePercentage)
     ]
   })
+
+  if (excludeUnchanged) {
+    map = map.filter(
+      file => !file[3].startsWith('⚪') && !file[3].startsWith('N/A')
+    )
+  }
 
   if (showOverallDiffRow) {
     map.unshift(await addOverallRow(headCoverage, baseCoverage))
@@ -175,8 +182,11 @@ async function generateMarkdown(
     .addTable([headers, ...map])
     .addBreak()
     .addRaw(
-      `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
+      `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>`
     )
+
+  if (!excludeUnchanged)
+    summary.addRaw(`<i>Only showing packages with differences in coverage.</i>`)
 
   //If this is run after write the buffer is empty
   core.info(`Writing results to ${markdownFilename}.md`)
@@ -203,28 +213,28 @@ async function addOverallRow(
 
   if (baseCoverage === null) {
     return [
-      '<b>Overall Coverage</b>',
-      `<b>${colorizePercentageByThreshold(
+      'Overall Coverage',
+      `${colorizePercentageByThreshold(
         headCoverage.coverage,
         0,
         overallCoverageFailThreshold
-      )}</b>`
+      )}`
     ]
   }
 
   return [
-    '<b>Overall Coverage',
-    `<b>${colorizePercentageByThreshold(
+    'Overall Coverage',
+    `${colorizePercentageByThreshold(
       baseCoverage.coverage,
       0,
       overallCoverageFailThreshold
-    )}</b>`,
-    `<b>${colorizePercentageByThreshold(
+    )}`,
+    `${colorizePercentageByThreshold(
       headCoverage.coverage,
       0,
       overallCoverageFailThreshold
-    )}</b>`,
-    `<b>${colorizePercentageByThreshold(overallDifferencePercentage)}</b>`
+    )}`,
+    `${colorizePercentageByThreshold(overallDifferencePercentage)}`
   ]
 }
 

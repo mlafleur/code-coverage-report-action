@@ -47,6 +47,11 @@ inputs:
     description: 'Includes a row showing changes in overall coverage to the package diff table on the coverage report.'
     required: false
     default: 'false'
+  exclude_unchanged:
+    description: 'Removes unchanged package rows from the coverage report .'
+    required: false
+    default: 'false'
+  
 outputs:
   file:
     description: 'The generated markdown file path'

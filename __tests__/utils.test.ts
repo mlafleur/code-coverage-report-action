@@ -128,6 +128,7 @@ test('getInputs', () => {
     markdownFilename: 'code-coverage-results',
     artifactDownloadWorkflowNames: null,
     artifactName: 'coverage-%name%',
-    showOverallDiffRow: false
+    showOverallDiffRow: false,
+    excludeUnchanged: false
   })
 })

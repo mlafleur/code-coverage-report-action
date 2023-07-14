@@ -24347,7 +24347,7 @@ function run() {
                         core.setFailed(`Unable to process ${filename}`);
                         return;
                     }
-                    //Base doesnt have an artifact
+                    //Base doesn't have an artifact
                     if (baseCoverage === null) {
                         core.warning(`${GITHUB_BASE_REF} is missing ${filename}. See documentation on how to add this`);
                         yield generateMarkdown(headCoverage);
@@ -24378,8 +24378,8 @@ function run() {
 }
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, showOverallDiffRow } = (0, utils_1.getInputs)();
-        const map = Object.entries(headCoverage.files).map(([hash, file]) => {
+        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, showOverallDiffRow, excludeUnchanged } = (0, utils_1.getInputs)();
+        let map = Object.entries(headCoverage.files).map(([hash, file]) => {
             if (baseCoverage === null) {
                 return [
                     file.relative,
@@ -24404,6 +24404,9 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
             ];
         });
+        if (excludeUnchanged) {
+            map = map.filter(file => !file[3].startsWith('⚪') && !file[3].startsWith('N/A'));
+        }
         if (showOverallDiffRow) {
             map.unshift(yield addOverallRow(headCoverage, baseCoverage));
         }
@@ -24439,7 +24442,9 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         summary
             .addTable([headers, ...map])
             .addBreak()
-            .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
+            .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>`);
+        if (!excludeUnchanged)
+            summary.addRaw(`<i>Only showing packages with differences in coverage.</i>`);
         //If this is run after write the buffer is empty
         core.info(`Writing results to ${markdownFilename}.md`);
         yield (0, promises_1.writeFile)(`${markdownFilename}.md`, summary.stringify());
@@ -24460,21 +24465,15 @@ function addOverallRow(headCoverage, baseCoverage = null) {
             : null;
         if (baseCoverage === null) {
             return [
-                //['overallRowId'],
-                //[
                 'Overall Coverage',
                 `${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}`
-                //]
             ];
         }
         return [
-            // ['overallRowId'],
-            // [
             'Overall Coverage',
             `${(0, utils_1.colorizePercentageByThreshold)(baseCoverage.coverage, 0, overallCoverageFailThreshold)}`,
             `${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}`,
-            (0, utils_1.colorizePercentageByThreshold)(overallDifferencePercentage)
-            //   ]
+            `${(0, utils_1.colorizePercentageByThreshold)(overallDifferencePercentage)}`
         ];
     });
 }
@@ -25146,6 +25145,7 @@ function getInputs() {
         ? tempArtifactDownloadWorkflowNames.split(',').map(n => n.trim())
         : null;
     const showOverallDiffRow = core.getInput('show_overall_diff_row') === 'true' ? true : false;
+    const excludeUnchanged = core.getInput('exclude_unchanged') === 'true' ? true : false;
     inputs = {
         token,
         filename,
@@ -25157,7 +25157,8 @@ function getInputs() {
         markdownFilename,
         artifactDownloadWorkflowNames,
         artifactName,
-        showOverallDiffRow
+        showOverallDiffRow,
+        excludeUnchanged
     };
     return inputs;
 }

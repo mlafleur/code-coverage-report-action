@@ -354,6 +354,9 @@ export function getInputs(): Inputs {
   const showOverallDiffRow =
     core.getInput('show_overall_diff_row') === 'true' ? true : false
 
+  const excludeUnchanged =
+    core.getInput('exclude_unchanged') === 'true' ? true : false
+
   inputs = {
     token,
     filename,
@@ -365,7 +368,8 @@ export function getInputs(): Inputs {
     markdownFilename,
     artifactDownloadWorkflowNames,
     artifactName,
-    showOverallDiffRow
+    showOverallDiffRow,
+    excludeUnchanged
   }
 
   return inputs
