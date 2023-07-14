@@ -24301,16 +24301,9 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         const summary = core.summary.addHeading('Code Coverage Report');
         if (badge)
             summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${(0, utils_1.colorizeBadgeByThreshold)(headCoverage.coverage, fileCoverageErrorMin, fileCoverageWarningMax)}`)}?style=flat`, 'Code Coverage');
-        if (reportOverallCoverage)
-            summary
-                .addBreak()
-                .addRaw(yield generateOverallCoverageReport(headCoverage.coverage, baseCoverage === null || baseCoverage === void 0 ? void 0 : baseCoverage.coverage, overallDifferencePercentage, fileCoverageErrorMin, fileCoverageWarningMax))
-                .addBreak();
-        if (reportPackageCoverage)
-            summary
-                .addTable(yield generatePackageCoverageReport(baseCoverage, map))
-                .addBreak()
-                .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
+        summary.addRaw(`\n${reportOverallCoverage
+            ? yield generateSummaryTable(headCoverage.coverage, baseCoverage === null || baseCoverage === void 0 ? void 0 : baseCoverage.coverage, overallDifferencePercentage, overallCoverageFailThreshold)
+            : yield generateDetailTable(headCoverage.coverage, baseCoverage === null || baseCoverage === void 0 ? void 0 : baseCoverage.coverage, overallDifferencePercentage, overallCoverageFailThreshold, map)}`);
         //If this is run after write the buffer is empty
         core.info(`Writing results to ${markdownFilename}.md`);
         yield (0, promises_1.writeFile)(`${markdownFilename}.md`, summary.stringify());
@@ -24323,49 +24316,44 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
 /**
  * Generate a coverage summary by file
  */
-function generatePackageCoverageReport(baseCoverage = null, map) {
+function generateDetailTable(current, baseline = null, difference, threshold, map) {
     return __awaiter(this, void 0, void 0, function* () {
-        const headers = baseCoverage === null
-            ? [
-                { data: 'Package', header: true },
-                { data: 'Coverage', header: true }
-            ]
-            : [
-                { data: 'Package', header: true },
-                { data: 'Base Coverage', header: true },
-                { data: 'New Coverage', header: true },
-                { data: 'Difference', header: true }
-            ];
-        return [headers, ...map];
+        return baseline
+            ? (0, markdown_table_1.markdownTable)([
+                ['Package', 'Coverage', 'Baseline', 'Difference'],
+                [
+                    'Overall',
+                    `${(0, utils_1.colorizePercentageByThreshold)(current, threshold)}`,
+                    `${(0, utils_1.colorizePercentageByThreshold)(baseline, threshold)}`,
+                    `${(0, utils_1.colorizePercentageByThreshold)(difference)}`
+                ],
+                ...map
+            ])
+            : (0, markdown_table_1.markdownTable)([
+                ['Package', 'Coverage'],
+                ['Overall', `${(0, utils_1.colorizePercentageByThreshold)(current, threshold)}`],
+                ...map
+            ]);
     });
 }
 /**
  * Generate summary for the overall coverage
  */
-function generateOverallCoverageReport(current, baseline = null, difference, thresholdMin, thresholdMax) {
+function generateSummaryTable(current, baseline = null, difference, threshold) {
     return __awaiter(this, void 0, void 0, function* () {
         return baseline
             ? (0, markdown_table_1.markdownTable)([
-                ['', ''],
+                ['Package', 'Coverage', 'Baseline', 'Difference'],
                 [
-                    'Current',
-                    `![Current](https://img.shields.io/badge/${encodeURIComponent(`Current-${current}%-${(0, utils_1.colorizeBadgeByThreshold)(current, thresholdMin, thresholdMax)}`)}?style=for-the-badge)`
-                ],
-                [
-                    'Baseline',
-                    `![Baseline](https://img.shields.io/badge/${encodeURIComponent(`Baseline-${baseline}%-${(0, utils_1.colorizeBadgeByThreshold)(baseline, thresholdMin, thresholdMax)}`)}?style=for-the-badge)`
-                ],
-                [
-                    'Difference',
-                    `![Difference](https://img.shields.io/badge/${encodeURIComponent(`Difference-${difference}%-${(0, utils_1.colorizeBadgeByThreshold)(difference)}`)}?style=for-the-badge)`
+                    'Overall',
+                    `${(0, utils_1.colorizePercentageByThreshold)(current, threshold)}`,
+                    `${(0, utils_1.colorizePercentageByThreshold)(baseline, threshold)}`,
+                    `${(0, utils_1.colorizePercentageByThreshold)(difference)}`
                 ]
             ])
             : (0, markdown_table_1.markdownTable)([
-                ['', ''],
-                [
-                    'Current',
-                    `![Current](https://img.shields.io/badge/${encodeURIComponent(`Current-${current}%-${(0, utils_1.colorizeBadgeByThreshold)(current, thresholdMin, thresholdMax)}`)}?style=for-the-badge)`
-                ]
+                ['Package', 'Coverage'],
+                ['Overalls', `${(0, utils_1.colorizePercentageByThreshold)(current, threshold)}`]
             ]);
     });
 }

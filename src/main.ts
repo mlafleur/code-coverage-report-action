@@ -163,27 +163,24 @@ async function generateMarkdown(
       'Code Coverage'
     )
 
-  if (reportOverallCoverage)
-    summary
-      .addBreak()
-      .addRaw(
-        await generateOverallCoverageReport(
-          headCoverage.coverage,
-          baseCoverage?.coverage,
-          overallDifferencePercentage,
-          fileCoverageErrorMin,
-          fileCoverageWarningMax
-        )
-      )
-      .addBreak()
-
-  if (reportPackageCoverage)
-    summary
-      .addTable(await generatePackageCoverageReport(baseCoverage, map))
-      .addBreak()
-      .addRaw(
-        `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
-      )
+  summary.addRaw(
+    `\n${
+      reportOverallCoverage
+        ? await generateSummaryTable(
+            headCoverage.coverage,
+            baseCoverage?.coverage,
+            overallDifferencePercentage,
+            overallCoverageFailThreshold
+          )
+        : await generateDetailTable(
+            headCoverage.coverage,
+            baseCoverage?.coverage,
+            overallDifferencePercentage,
+            overallCoverageFailThreshold,
+            map
+          )
+    }`
+  )
 
   //If this is run after write the buffer is empty
   core.info(`Writing results to ${markdownFilename}.md`)
@@ -198,77 +195,53 @@ async function generateMarkdown(
 /**
  * Generate a coverage summary by file
  */
-async function generatePackageCoverageReport(
-  baseCoverage: Coverage | null = null,
+async function generateDetailTable(
+  current: number,
+  baseline: number | null = null,
+  difference: number | null,
+  threshold: number,
   map: string[][]
-): Promise<(string[] | {data: string; header: boolean}[])[]> {
-  const headers =
-    baseCoverage === null
-      ? [
-          {data: 'Package', header: true},
-          {data: 'Coverage', header: true}
-        ]
-      : [
-          {data: 'Package', header: true},
-          {data: 'Base Coverage', header: true},
-          {data: 'New Coverage', header: true},
-          {data: 'Difference', header: true}
-        ]
-  return [headers, ...map]
+): Promise<string> {
+  return baseline
+    ? markdownTable([
+        ['Package', 'Coverage', 'Baseline', 'Difference'],
+        [
+          'Overall',
+          `${colorizePercentageByThreshold(current, threshold)}`,
+          `${colorizePercentageByThreshold(baseline, threshold)}`,
+          `${colorizePercentageByThreshold(difference)}`
+        ],
+        ...map
+      ])
+    : markdownTable([
+        ['Package', 'Coverage'],
+        ['Overall', `${colorizePercentageByThreshold(current, threshold)}`],
+        ...map
+      ])
 }
 
 /**
  * Generate summary for the overall coverage
  */
-async function generateOverallCoverageReport(
+async function generateSummaryTable(
   current: number,
   baseline: number | null = null,
   difference: number | null,
-  thresholdMin: number,
-  thresholdMax: number
+  threshold: number
 ): Promise<string> {
   return baseline
     ? markdownTable([
-        ['', ''],
+        ['Package', 'Coverage', 'Baseline', 'Difference'],
         [
-          'Current',
-          `![Current](https://img.shields.io/badge/${encodeURIComponent(
-            `Current-${current}%-${colorizeBadgeByThreshold(
-              current,
-              thresholdMin,
-              thresholdMax
-            )}`
-          )}?style=for-the-badge)`
-        ],
-        [
-          'Baseline',
-          `![Baseline](https://img.shields.io/badge/${encodeURIComponent(
-            `Baseline-${baseline}%-${colorizeBadgeByThreshold(
-              baseline,
-              thresholdMin,
-              thresholdMax
-            )}`
-          )}?style=for-the-badge)`
-        ],
-        [
-          'Difference',
-          `![Difference](https://img.shields.io/badge/${encodeURIComponent(
-            `Difference-${difference}%-${colorizeBadgeByThreshold(difference)}`
-          )}?style=for-the-badge)`
+          'Overall',
+          `${colorizePercentageByThreshold(current, threshold)}`,
+          `${colorizePercentageByThreshold(baseline, threshold)}`,
+          `${colorizePercentageByThreshold(difference)}`
         ]
       ])
     : markdownTable([
-        ['', ''],
-        [
-          'Current',
-          `![Current](https://img.shields.io/badge/${encodeURIComponent(
-            `Current-${current}%-${colorizeBadgeByThreshold(
-              current,
-              thresholdMin,
-              thresholdMax
-            )}`
-          )}?style=for-the-badge)`
-        ]
+        ['Package', 'Coverage'],
+        ['Overalls', `${colorizePercentageByThreshold(current, threshold)}`]
       ])
 }
 
