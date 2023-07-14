@@ -22,6 +22,7 @@ export interface Inputs {
   markdownFilename: string
   artifactDownloadWorkflowNames: string[] | null
   artifactName: string
+  negativeDifferenceBy: string
 }
 
 export interface Files {

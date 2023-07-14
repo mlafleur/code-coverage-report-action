@@ -77,7 +77,8 @@ async function generateMarkdown(
     fileCoverageErrorMin,
     fileCoverageWarningMax,
     badge,
-    markdownFilename
+    markdownFilename,
+    negativeDifferenceBy
   } = getInputs()
   const map = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
@@ -101,6 +102,7 @@ async function generateMarkdown(
 
     if (
       failOnNegativeDifference &&
+      negativeDifferenceBy === 'package' &&
       differencePercentage !== null &&
       differencePercentage < 0
     ) {
@@ -125,9 +127,29 @@ async function generateMarkdown(
     ]
   })
 
+  const overallDifferencePercentage = baseCoverage
+    ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
+    : null
+
+  core.debug(`headCoverage: ${headCoverage.coverage}`)
+  core.debug(`baseCoverage: ${baseCoverage?.coverage}`)
+  core.debug(`overallDifferencePercentage: ${overallDifferencePercentage}`)
+
+  if (
+    failOnNegativeDifference &&
+    negativeDifferenceBy === 'overall' &&
+    overallDifferencePercentage !== null &&
+    overallDifferencePercentage < 0 &&
+    baseCoverage
+  ) {
+    core.setFailed(
+      `FAIL: Overall coverage of dropped ${overallDifferencePercentage}%, from ${baseCoverage.coverage}% to ${headCoverage.coverage}%.`
+    )
+  }
+
   if (overallCoverageFailThreshold > headCoverage.coverage) {
     core.setFailed(
-      `FAIL: Overall coverage of ${headCoverage.coverage.toString()}% below minimum threshold of ${overallCoverageFailThreshold.toString()}%`
+      `FAIL: Overall coverage of ${headCoverage.coverage.toString()}% below minimum threshold of ${overallCoverageFailThreshold.toString()}%.`
     )
   }
 
@@ -162,10 +184,11 @@ async function generateMarkdown(
     summary.addImage(
       `https://img.shields.io/badge/${encodeURIComponent(
         `Code Coverage-${headCoverage.coverage}%-${color}`
-      )}?style=flat`,
+      )}?style=for-the-badge`,
       'Code Coverage'
     )
   }
+
   summary
     .addTable([headers, ...map])
     .addBreak()

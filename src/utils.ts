@@ -335,8 +335,14 @@ export function getInputs(): Inputs {
   const fileCoverageWarningMax = parseInt(
     core.getInput('file_coverage_warning_max') || '75'
   )
+
   const failOnNegativeDifference =
     core.getInput('fail_on_negative_difference') === 'true' ? true : false
+
+  const negativeDifferenceBy =
+    core.getInput('negative_difference_by') === 'overall'
+      ? 'overall'
+      : 'package'
 
   const artifactName = core.getInput('artifact_name') || 'coverage-%name%'
   if (!artifactName.includes('%name%')) {
@@ -361,7 +367,8 @@ export function getInputs(): Inputs {
     failOnNegativeDifference,
     markdownFilename,
     artifactDownloadWorkflowNames,
-    artifactName
+    artifactName,
+    negativeDifferenceBy
   }
 
   return inputs
