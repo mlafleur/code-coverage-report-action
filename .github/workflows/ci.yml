@@ -30,6 +30,7 @@ jobs:
           markdown_filename: code-coverage-diff
 
       - name: Publish package coverage validation results
+        id: puiblic_code_coverage_report
         uses: marocchino/sticky-pull-request-comment@v2.6.2
         if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
         with:
@@ -48,6 +49,7 @@ jobs:
           report_package_coverage: false
 
       - name: Publish overall coverage validation results
+        id: puiblic_iverall_code_coverage_report
         uses: marocchino/sticky-pull-request-comment@v2.6.2
         if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
         with:

@@ -24309,6 +24309,8 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
             color = 'green';
         }
         const summary = core.summary.addHeading('Code Coverage Report');
+        if (badge)
+            summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=flat`, 'Code Coverage');
         if (reportOverallCoverage)
             summary
                 .addTable(yield generateOverallCoverageReport(headCoverage.coverage, baseCoverage === null || baseCoverage === void 0 ? void 0 : baseCoverage.coverage, overallDifferencePercentage))
@@ -24316,10 +24318,8 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         if (reportPackageCoverage)
             summary
                 .addTable(yield generatePackageCoverageReport(baseCoverage, map))
-                .addBreak();
-        if (badge)
-            summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=flat`, 'Code Coverage');
-        summary.addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
+                .addBreak()
+                .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
         //If this is run after write the buffer is empty
         core.info(`Writing results to ${markdownFilename}.md`);
         yield (0, promises_1.writeFile)(`${markdownFilename}.md`, summary.stringify());
@@ -24357,21 +24357,23 @@ function generateOverallCoverageReport(headCoverage, baseCoverage = null, overal
         return baseCoverage
             ? [
                 [
-                    { data: 'New Coverage', header: true },
-                    { data: 'Base Coverage', header: true },
-                    { data: 'Difference', header: true }
+                    '<b>New Coverage</b>',
+                    `${(0, utils_1.colorizePercentageByThreshold)(headCoverage, 0, overallCoverageFailThreshold)}`
                 ],
                 [
-                    `${(0, utils_1.colorizePercentageByThreshold)(headCoverage, 0, overallCoverageFailThreshold)}`,
+                    '<b>Base Coverage</b>',
                     baseCoverage
                         ? `${(0, utils_1.colorizePercentageByThreshold)(baseCoverage, 0, overallCoverageFailThreshold)}`
-                        : '',
+                        : ''
+                ],
+                [
+                    '<b>Coverage Change</b>',
                     `${(0, utils_1.colorizePercentageByThreshold)(overallDifferencePercentage)}`
                 ]
             ]
             : [
-                [{ data: 'New Coverage', header: true }],
                 [
+                    '<b>New Coverage</b>',
                     `${(0, utils_1.colorizePercentageByThreshold)(headCoverage, 0, overallCoverageFailThreshold)}`
                 ]
             ];
