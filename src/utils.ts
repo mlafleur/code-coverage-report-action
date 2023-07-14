@@ -270,6 +270,34 @@ export function colorizePercentageByThreshold(
 }
 
 /**
+ * Colorize Badge By Threshold
+ * @param percentage
+ * @param thresholdMax
+ * @param thresholdMin
+ * @returns
+ */
+export function colorizeBadgeByThreshold(
+  percentage: number | null,
+  thresholdMin = 0,
+  thresholdMax = 0
+): string {
+  let color = 'grey'
+  if (percentage && percentage < thresholdMin) {
+    color = 'red'
+  } else if (
+    percentage &&
+    percentage > thresholdMin &&
+    percentage &&
+    percentage < thresholdMax
+  ) {
+    color = 'orange'
+  } else if (percentage && percentage > thresholdMin) {
+    color = 'green'
+  }
+  return color
+}
+
+/**
  * Determine a common base path
  *
  * @param {string[]} files

@@ -2,6 +2,7 @@ import * as core from '@actions/core'
 import {
   checkFileExists,
   colorizePercentageByThreshold,
+  colorizeBadgeByThreshold,
   downloadArtifacts,
   getInputs,
   parseCoverage,
@@ -11,6 +12,7 @@ import {
 import {Coverage} from './interfaces'
 import {writeFile} from 'fs/promises'
 import path from 'path'
+import {markdownTable} from 'markdown-table'
 
 async function run(): Promise<void> {
   try {
@@ -147,35 +149,30 @@ async function generateMarkdown(
     core.setFailed(`Coverage dropped by ${overallDifferencePercentage}%`)
   }
 
-  let color = 'grey'
-  if (headCoverage.coverage < fileCoverageErrorMin) {
-    color = 'red'
-  } else if (
-    headCoverage.coverage > fileCoverageErrorMin &&
-    headCoverage.coverage < fileCoverageWarningMax
-  ) {
-    color = 'orange'
-  } else if (headCoverage.coverage > fileCoverageWarningMax) {
-    color = 'green'
-  }
-
   const summary = core.summary.addHeading('Code Coverage Report')
 
   if (badge)
     summary.addImage(
       `https://img.shields.io/badge/${encodeURIComponent(
-        `Code Coverage-${headCoverage.coverage}%-${color}`
+        `Code Coverage-${headCoverage.coverage}%-${colorizeBadgeByThreshold(
+          headCoverage.coverage,
+          fileCoverageErrorMin,
+          fileCoverageWarningMax
+        )}`
       )}?style=flat`,
       'Code Coverage'
     )
 
   if (reportOverallCoverage)
     summary
-      .addTable(
+      .addBreak()
+      .addRaw(
         await generateOverallCoverageReport(
           headCoverage.coverage,
           baseCoverage?.coverage,
-          overallDifferencePercentage
+          overallDifferencePercentage,
+          fileCoverageErrorMin,
+          fileCoverageWarningMax
         )
       )
       .addBreak()
@@ -224,47 +221,55 @@ async function generatePackageCoverageReport(
  * Generate summary for the overall coverage
  */
 async function generateOverallCoverageReport(
-  headCoverage: number,
-  baseCoverage: number | null = null,
-  overallDifferencePercentage: number | null
-): Promise<(string[] | {data: string; header: boolean}[])[]> {
-  const {overallCoverageFailThreshold} = getInputs()
-
-  return baseCoverage
-    ? [
+  current: number,
+  baseline: number | null = null,
+  difference: number | null,
+  thresholdMin: number,
+  thresholdMax: number
+): Promise<string> {
+  return baseline
+    ? markdownTable([
+        ['', ''],
         [
-          '<b>New Coverage</b>',
-          `${colorizePercentageByThreshold(
-            headCoverage,
-            0,
-            overallCoverageFailThreshold
-          )}`
+          'Current',
+          `![Current](https://img.shields.io/badge/${encodeURIComponent(
+            `Current-${current}%-${colorizeBadgeByThreshold(
+              current,
+              thresholdMin,
+              thresholdMax
+            )}`
+          )}?style=for-the-badge)`
         ],
         [
-          '<b>Base Coverage</b>',
-          baseCoverage
-            ? `${colorizePercentageByThreshold(
-                baseCoverage,
-                0,
-                overallCoverageFailThreshold
-              )}`
-            : ''
+          'Baseline',
+          `![Baseline](https://img.shields.io/badge/${encodeURIComponent(
+            `Baseline-${baseline}%-${colorizeBadgeByThreshold(
+              baseline,
+              thresholdMin,
+              thresholdMax
+            )}`
+          )}?style=for-the-badge)`
         ],
         [
-          '<b>Coverage Change</b>',
-          `${colorizePercentageByThreshold(overallDifferencePercentage)}`
+          'Difference',
+          `![Difference](https://img.shields.io/badge/${encodeURIComponent(
+            `Difference-${difference}%-${colorizeBadgeByThreshold(difference)}`
+          )}?style=for-the-badge)`
         ]
-      ]
-    : [
+      ])
+    : markdownTable([
+        ['', ''],
         [
-          '<b>New Coverage</b>',
-          `${colorizePercentageByThreshold(
-            headCoverage,
-            0,
-            overallCoverageFailThreshold
-          )}`
+          'Current',
+          `![Current](https://img.shields.io/badge/${encodeURIComponent(
+            `Current-${current}%-${colorizeBadgeByThreshold(
+              current,
+              thresholdMin,
+              thresholdMax
+            )}`
+          )}?style=for-the-badge)`
         ]
-      ]
+      ])
 }
 
 run()
