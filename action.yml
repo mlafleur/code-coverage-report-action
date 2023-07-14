@@ -43,6 +43,10 @@ inputs:
     description: 'Artifact name. Use %name% as a placeholder (must be included!)'
     required: false
     default: 'coverage-%name%'
+  show_overall_diff_row:
+    description: 'Includes a row showing changes in overall coverage to the package diff table on the coverage report.'
+    required: false
+    default: 'false'
 outputs:
   file:
     description: 'The generated markdown file path'

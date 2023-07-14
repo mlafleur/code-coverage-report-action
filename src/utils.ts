@@ -351,6 +351,9 @@ export function getInputs(): Inputs {
       ? tempArtifactDownloadWorkflowNames.split(',').map(n => n.trim())
       : null
 
+  const showOverallDiffRow =
+    core.getInput('show_overall_diff_row') === 'true' ? true : false
+
   inputs = {
     token,
     filename,
@@ -361,7 +364,8 @@ export function getInputs(): Inputs {
     failOnNegativeDifference,
     markdownFilename,
     artifactDownloadWorkflowNames,
-    artifactName
+    artifactName,
+    showOverallDiffRow
   }
 
   return inputs

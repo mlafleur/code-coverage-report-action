@@ -36,7 +36,7 @@ async function run(): Promise<void> {
           return
         }
 
-        //Base doesnt have an artifact
+        //Base doesn't have an artifact
         if (baseCoverage === null) {
           core.warning(
             `${GITHUB_BASE_REF} is missing ${filename}. See documentation on how to add this`
@@ -77,7 +77,8 @@ async function generateMarkdown(
     fileCoverageErrorMin,
     fileCoverageWarningMax,
     badge,
-    markdownFilename
+    markdownFilename,
+    showOverallDiffRow
   } = getInputs()
   const map = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
@@ -124,6 +125,10 @@ async function generateMarkdown(
       colorizePercentageByThreshold(differencePercentage)
     ]
   })
+
+  if (showOverallDiffRow) {
+    map.unshift(await addOverallRow(headCoverage, baseCoverage))
+  }
 
   if (overallCoverageFailThreshold > headCoverage.coverage) {
     core.setFailed(
@@ -181,6 +186,46 @@ async function generateMarkdown(
 
   core.info(`Writing job summary`)
   await summary.write()
+}
+
+/**
+ * Generate overall coverage row
+ */
+async function addOverallRow(
+  headCoverage: Coverage,
+  baseCoverage: Coverage | null = null
+): Promise<string[]> {
+  const {overallCoverageFailThreshold} = getInputs()
+
+  const overallDifferencePercentage = baseCoverage
+    ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
+    : null
+
+  if (baseCoverage === null) {
+    return [
+      '<b>Overall Coverage</b>',
+      `<b>${colorizePercentageByThreshold(
+        headCoverage.coverage,
+        0,
+        overallCoverageFailThreshold
+      )}</b>`
+    ]
+  }
+
+  return [
+    '<b>Overall Coverage',
+    `<b>${colorizePercentageByThreshold(
+      baseCoverage.coverage,
+      0,
+      overallCoverageFailThreshold
+    )}</b>`,
+    `<b>${colorizePercentageByThreshold(
+      headCoverage.coverage,
+      0,
+      overallCoverageFailThreshold
+    )}</b>`,
+    `<b>${colorizePercentageByThreshold(overallDifferencePercentage)}</b>`
+  ]
 }
 
 run()
