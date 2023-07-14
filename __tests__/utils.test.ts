@@ -129,6 +129,7 @@ test('getInputs', () => {
     artifactDownloadWorkflowNames: null,
     artifactName: 'coverage-%name%',
     showOverallDiffRow: false,
-    excludeUnchanged: false
+    excludeUnchanged: false,
+    negativeDifferenceBy: 'package'
   })
 })

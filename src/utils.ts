@@ -338,6 +338,11 @@ export function getInputs(): Inputs {
   const failOnNegativeDifference =
     core.getInput('fail_on_negative_difference') === 'true' ? true : false
 
+  const negativeDifferenceBy =
+    core.getInput('negative_difference_by') === 'overall'
+      ? 'overall'
+      : 'package'
+
   const artifactName = core.getInput('artifact_name') || 'coverage-%name%'
   if (!artifactName.includes('%name%')) {
     throw new Error('artifact_name is missing %name% variable')
@@ -369,7 +374,8 @@ export function getInputs(): Inputs {
     artifactDownloadWorkflowNames,
     artifactName,
     showOverallDiffRow,
-    excludeUnchanged
+    excludeUnchanged,
+    negativeDifferenceBy
   }
 
   return inputs

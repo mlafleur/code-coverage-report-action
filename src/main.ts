@@ -8,7 +8,7 @@ import {
   roundPercentage,
   uploadArtifacts
 } from './utils'
-import {Coverage, CoverageFile} from './interfaces'
+import {Coverage} from './interfaces'
 import {writeFile} from 'fs/promises'
 import path from 'path'
 
@@ -79,7 +79,8 @@ async function generateMarkdown(
     badge,
     markdownFilename,
     showOverallDiffRow,
-    excludeUnchanged
+    excludeUnchanged,
+    negativeDifferenceBy
   } = getInputs()
   let map = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
@@ -103,6 +104,7 @@ async function generateMarkdown(
 
     if (
       failOnNegativeDifference &&
+      negativeDifferenceBy === 'package' &&
       differencePercentage !== null &&
       differencePercentage < 0
     ) {
@@ -135,6 +137,21 @@ async function generateMarkdown(
 
   if (showOverallDiffRow) {
     map.unshift(await addOverallRow(headCoverage, baseCoverage))
+  }
+
+  const overallDifferencePercentage = baseCoverage
+    ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
+    : null
+
+  if (
+    negativeDifferenceBy === 'overall' &&
+    overallDifferencePercentage !== null &&
+    overallDifferencePercentage < 0 &&
+    baseCoverage
+  ) {
+    core.setFailed(
+      `FAIL: Overall coverage of dropped from ${baseCoverage.coverage} to ${headCoverage.coverage}.`
+    )
   }
 
   if (overallCoverageFailThreshold > headCoverage.coverage) {
@@ -178,6 +195,7 @@ async function generateMarkdown(
       'Code Coverage'
     )
   }
+
   summary
     .addTable([headers, ...map])
     .addBreak()

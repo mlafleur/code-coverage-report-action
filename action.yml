@@ -48,9 +48,13 @@ inputs:
     required: false
     default: 'false'
   exclude_unchanged:
-    description: 'Removes unchanged package rows from the coverage report .'
+    description: 'Removes unchanged package rows from the coverage report.'
     required: false
     default: 'false'
+  negative_difference_by: 
+    description: 'Determines how negative difference is evaluated. Possible values are "overall" and "package" (default)'
+    required: false
+    default: 'package'
   
 outputs:
   file:

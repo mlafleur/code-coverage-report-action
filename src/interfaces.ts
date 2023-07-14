@@ -23,6 +23,7 @@ export interface Inputs {
   artifactDownloadWorkflowNames: string[] | null
   artifactName: string
   showOverallDiffRow: boolean
+  negativeDifferenceBy: string
   excludeUnchanged: boolean
 }
 

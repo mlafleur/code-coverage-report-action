@@ -24378,7 +24378,7 @@ function run() {
 }
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, showOverallDiffRow, excludeUnchanged } = (0, utils_1.getInputs)();
+        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, showOverallDiffRow, excludeUnchanged, negativeDifferenceBy } = (0, utils_1.getInputs)();
         let map = Object.entries(headCoverage.files).map(([hash, file]) => {
             if (baseCoverage === null) {
                 return [
@@ -24393,6 +24393,7 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 ? (0, utils_1.roundPercentage)(file.coverage - baseCoveragePercentage)
                 : null;
             if (failOnNegativeDifference &&
+                negativeDifferenceBy === 'package' &&
                 differencePercentage !== null &&
                 differencePercentage < 0) {
                 core.setFailed(`${headCoverage.files[hash].relative} coverage difference was ${differencePercentage}%`);
@@ -24409,6 +24410,15 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         }
         if (showOverallDiffRow) {
             map.unshift(yield addOverallRow(headCoverage, baseCoverage));
+        }
+        const overallDifferencePercentage = baseCoverage
+            ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
+            : null;
+        if (negativeDifferenceBy === 'overall' &&
+            overallDifferencePercentage !== null &&
+            overallDifferencePercentage < 0 &&
+            baseCoverage) {
+            core.setFailed(`FAIL: Overall coverage of dropped from ${baseCoverage.coverage} to ${headCoverage.coverage}.`);
         }
         if (overallCoverageFailThreshold > headCoverage.coverage) {
             core.setFailed(`FAIL: Overall coverage of ${headCoverage.coverage.toString()}% below minimum threshold of ${overallCoverageFailThreshold.toString()}%`);
@@ -25136,6 +25146,9 @@ function getInputs() {
     const fileCoverageErrorMin = parseInt(core.getInput('file_coverage_error_min') || '50');
     const fileCoverageWarningMax = parseInt(core.getInput('file_coverage_warning_max') || '75');
     const failOnNegativeDifference = core.getInput('fail_on_negative_difference') === 'true' ? true : false;
+    const negativeDifferenceBy = core.getInput('negative_difference_by') === 'overall'
+        ? 'overall'
+        : 'package';
     const artifactName = core.getInput('artifact_name') || 'coverage-%name%';
     if (!artifactName.includes('%name%')) {
         throw new Error('artifact_name is missing %name% variable');
@@ -25158,7 +25171,8 @@ function getInputs() {
         artifactDownloadWorkflowNames,
         artifactName,
         showOverallDiffRow,
-        excludeUnchanged
+        excludeUnchanged,
+        negativeDifferenceBy
     };
     return inputs;
 }
