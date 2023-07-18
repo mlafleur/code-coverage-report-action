@@ -248,7 +248,7 @@ export function colorizePercentageByThreshold(
   thresholdMin: number | null = null
 ): string {
   if (percentage === null) {
-    return 'N/A'
+    return `⚪ 0%`
   }
   if (thresholdMin === null) {
     if (percentage > thresholdMax) {
