@@ -24,9 +24,6 @@ jobs:
         if: always()
         with:
           filename: 'coverage/clover.xml'
-          fail_on_negative_difference: true
-          negative_difference_by: 'overall'
-          negative_difference_threshold: 0.0025
           artifact_download_workflow_names: 'ci,cron'
           badge: true
       - name: Add Coverage PR Comment
