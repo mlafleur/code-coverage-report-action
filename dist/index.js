@@ -24405,6 +24405,8 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
             ];
         });
+        // Add a "summary row" showing changes in overall overage.
+        map.push(yield addOverallRow(headCoverage, baseCoverage));
         const overallDifferencePercentage = baseCoverage
             ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
             : null;
@@ -24458,6 +24460,29 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         core.setOutput('coverage', headCoverage.coverage);
         core.info(`Writing job summary`);
         yield summary.write();
+    });
+}
+/**
+ * Generate overall coverage row
+ */
+function addOverallRow(headCoverage, baseCoverage = null) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const { overallCoverageFailThreshold } = (0, utils_1.getInputs)();
+        const overallDifferencePercentage = baseCoverage
+            ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
+            : null;
+        if (baseCoverage === null) {
+            return [
+                'Overall Coverage',
+                `${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}`
+            ];
+        }
+        return [
+            '<b>Overall Coverage</b>',
+            `<b>${(0, utils_1.colorizePercentageByThreshold)(baseCoverage.coverage, 0, overallCoverageFailThreshold)}</b>`,
+            `<b>${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}</b>`,
+            `<b>${(0, utils_1.colorizePercentageByThreshold)(overallDifferencePercentage)}</b>`
+        ];
     });
 }
 run();

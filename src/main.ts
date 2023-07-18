@@ -127,6 +127,9 @@ async function generateMarkdown(
     ]
   })
 
+  // Add a "summary row" showing changes in overall overage.
+  map.push(await addOverallRow(headCoverage, baseCoverage))
+
   const overallDifferencePercentage = baseCoverage
     ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
     : null
@@ -204,6 +207,46 @@ async function generateMarkdown(
 
   core.info(`Writing job summary`)
   await summary.write()
+}
+
+/**
+ * Generate overall coverage row
+ */
+async function addOverallRow(
+  headCoverage: Coverage,
+  baseCoverage: Coverage | null = null
+): Promise<string[]> {
+  const {overallCoverageFailThreshold} = getInputs()
+
+  const overallDifferencePercentage = baseCoverage
+    ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
+    : null
+
+  if (baseCoverage === null) {
+    return [
+      'Overall Coverage',
+      `${colorizePercentageByThreshold(
+        headCoverage.coverage,
+        0,
+        overallCoverageFailThreshold
+      )}`
+    ]
+  }
+
+  return [
+    '<b>Overall Coverage</b>',
+    `<b>${colorizePercentageByThreshold(
+      baseCoverage.coverage,
+      0,
+      overallCoverageFailThreshold
+    )}</b>`,
+    `<b>${colorizePercentageByThreshold(
+      headCoverage.coverage,
+      0,
+      overallCoverageFailThreshold
+    )}</b>`,
+    `<b>${colorizePercentageByThreshold(overallDifferencePercentage)}</b>`
+  ]
 }
 
 run()
