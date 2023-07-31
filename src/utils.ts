@@ -76,7 +76,7 @@ export async function downloadArtifacts(
   const [owner, repo] = GITHUB_REPOSITORY.split('/')
 
   core.info(
-    `Looking for artifact "${artifactName}" in the following worflows: ${artifactWorkflowNames.join(
+    `Looking for artifact "${artifactName}" in the following workflows: ${artifactWorkflowNames.join(
       ','
     )}`
   )
@@ -99,7 +99,7 @@ export async function downloadArtifacts(
         core.debug(
           `${
             run.name
-          } did not match the following worflows: ${artifactWorkflowNames.join(
+          } did not match the following workflows: ${artifactWorkflowNames.join(
             ','
           )}`
         )
