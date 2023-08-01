@@ -51,6 +51,10 @@ inputs:
     description: 'The percentage drop in coverage that should be allowed, in decimal form (0.05 == 5%). The default value is 0.'
     required: false
     default: '0'
+  retention_days:
+    description: 'The number of days to retain uploaded artifacts. When `null` (default), the default retention period for the repository is used.'
+    required: false
+    default: null
 
 outputs:
   file:

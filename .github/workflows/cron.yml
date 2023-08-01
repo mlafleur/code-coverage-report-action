@@ -19,3 +19,6 @@ jobs:
         with:
           badge: true
           filename: 'coverage/clover.xml'
+          retention_days: 1
+      - run: cat code-coverage-results >> "${GITHUB_STEP_SUMMARY}"
+

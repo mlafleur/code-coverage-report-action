@@ -36,7 +36,7 @@ async function run(): Promise<void> {
           return
         }
 
-        //Base doesnt have an artifact
+        //Base doesn't have an artifact
         if (baseCoverage === null) {
           core.warning(
             `${GITHUB_BASE_REF} is missing ${filename}. See documentation on how to add this`
@@ -61,6 +61,7 @@ async function run(): Promise<void> {
       default:
       //TODO: return something here
     }
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     core.setFailed(err.message)

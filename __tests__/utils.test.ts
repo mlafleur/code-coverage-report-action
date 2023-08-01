@@ -74,8 +74,8 @@ test('escaping regular expression input', () => {
 })
 
 test('colorize percentage by threshold', () => {
-  const shouldBeNA = colorizePercentageByThreshold(null)
-  expect(shouldBeNA).toBe('N/A')
+  const shouldBeZero = colorizePercentageByThreshold(null)
+  expect(shouldBeZero).toBe('⚪ 0%')
 
   const shouldBeGrey = colorizePercentageByThreshold(0)
   expect(shouldBeGrey).toBe('⚪ 0%')
@@ -128,6 +128,7 @@ test('getInputs', () => {
     markdownFilename: 'code-coverage-results',
     artifactDownloadWorkflowNames: null,
     artifactName: 'coverage-%name%',
-    negativeDifferenceBy: 'package'
+    negativeDifferenceBy: 'package',
+    retention: undefined
   })
 })

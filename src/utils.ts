@@ -5,10 +5,12 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import {Clover, parse as parseClover} from './reports/clover'
 import {Cobertura, parse as parseCobertura} from './reports/cobertura'
-import path from 'path'
+import path, {parse} from 'path'
+
 import {Coverage, Inputs} from './interfaces'
 import crypto from 'crypto'
 import AdmZip from 'adm-zip'
+import {stringify} from 'querystring'
 
 const {access, readFile, mkdir} = fs
 
@@ -167,21 +169,23 @@ export async function uploadArtifacts(
 ): Promise<artifact.UploadResponse> {
   const artifactClient = artifact.create()
   const artifactName = formatArtifactName(name)
+  const {retention} = getInputs()
 
   const rootDirectory = '.'
-  const options = {
-    continueOnError: false
-  }
 
-  core.info(
-    `Uploading Artifacts to ${artifactName} on workflow named ${github.context.job}`
-  )
-  return await artifactClient.uploadArtifact(
+  const result = await artifactClient.uploadArtifact(
     artifactName,
     files,
     rootDirectory,
-    options
+    {
+      continueOnError: false,
+      retentionDays: retention
+    }
   )
+
+  core.info(`Artifact Metadata:\n${JSON.stringify(result, null, 4)}`)
+
+  return result
 }
 
 /**
@@ -248,7 +252,7 @@ export function colorizePercentageByThreshold(
   thresholdMin: number | null = null
 ): string {
   if (percentage === null) {
-    return `⚪ 0%`
+    return '⚪ 0%'
   }
   if (thresholdMin === null) {
     if (percentage > thresholdMax) {
@@ -344,6 +348,10 @@ export function getInputs(): Inputs {
       ? 'overall'
       : 'package'
 
+  const retentionString = core.getInput('retention_days') || undefined
+  const retentionDays =
+    retentionString == undefined ? undefined : parseInt(retentionString)
+
   const artifactName = core.getInput('artifact_name') || 'coverage-%name%'
   if (!artifactName.includes('%name%')) {
     throw new Error('artifact_name is missing %name% variable')
@@ -368,7 +376,8 @@ export function getInputs(): Inputs {
     markdownFilename,
     artifactDownloadWorkflowNames,
     artifactName,
-    negativeDifferenceBy
+    negativeDifferenceBy,
+    retention: retentionDays
   }
 
   return inputs

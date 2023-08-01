@@ -24347,7 +24347,7 @@ function run() {
                         core.setFailed(`Unable to process ${filename}`);
                         return;
                     }
-                    //Base doesnt have an artifact
+                    //Base doesn't have an artifact
                     if (baseCoverage === null) {
                         core.warning(`${GITHUB_BASE_REF} is missing ${filename}. See documentation on how to add this`);
                         yield generateMarkdown(headCoverage);
@@ -24887,7 +24887,7 @@ function downloadArtifacts(name, base = 'artifacts') {
         const artifactName = formatArtifactName(name);
         const { GITHUB_BASE_REF = '', GITHUB_REPOSITORY = '' } = process.env;
         const [owner, repo] = GITHUB_REPOSITORY.split('/');
-        core.info(`Looking for artifact "${artifactName}" in the following worflows: ${artifactWorkflowNames.join(',')}`);
+        core.info(`Looking for artifact "${artifactName}" in the following workflows: ${artifactWorkflowNames.join(',')}`);
         try {
             for (var _k = true, _l = __asyncValues(client.paginate.iterator(client.rest.actions.listWorkflowRunsForRepo, {
                 owner,
@@ -24910,7 +24910,7 @@ function downloadArtifacts(name, base = 'artifacts') {
                                     continue;
                                 }
                                 if (!inArray(run.name, artifactWorkflowNames)) {
-                                    core.debug(`${run.name} did not match the following worflows: ${artifactWorkflowNames.join(',')}`);
+                                    core.debug(`${run.name} did not match the following workflows: ${artifactWorkflowNames.join(',')}`);
                                     continue;
                                 }
                                 const artifacts = yield client.rest.actions.listWorkflowRunArtifacts({
@@ -25002,12 +25002,14 @@ function uploadArtifacts(files, name) {
     return __awaiter(this, void 0, void 0, function* () {
         const artifactClient = artifact.create();
         const artifactName = formatArtifactName(name);
+        const { retention } = getInputs();
         const rootDirectory = '.';
-        const options = {
-            continueOnError: false
-        };
-        core.info(`Uploading Artifacts to ${artifactName} on workflow named ${github.context.job}`);
-        return yield artifactClient.uploadArtifact(artifactName, files, rootDirectory, options);
+        const result = yield artifactClient.uploadArtifact(artifactName, files, rootDirectory, {
+            continueOnError: false,
+            retentionDays: retention
+        });
+        core.info(`Artifact Metadata:\n${JSON.stringify(result, null, 4)}`);
+        return result;
     });
 }
 exports.uploadArtifacts = uploadArtifacts;
@@ -25068,7 +25070,7 @@ exports.escapeRegExp = escapeRegExp;
  */
 function colorizePercentageByThreshold(percentage, thresholdMax = 0, thresholdMin = null) {
     if (percentage === null) {
-        return `⚪ 0%`;
+        return '⚪ 0%';
     }
     if (thresholdMin === null) {
         if (percentage > thresholdMax) {
@@ -25147,6 +25149,8 @@ function getInputs() {
     const negativeDifferenceBy = core.getInput('negative_difference_by') === 'overall'
         ? 'overall'
         : 'package';
+    const retentionString = core.getInput('retention_days') || undefined;
+    const retentionDays = retentionString == undefined ? undefined : parseInt(retentionString);
     const artifactName = core.getInput('artifact_name') || 'coverage-%name%';
     if (!artifactName.includes('%name%')) {
         throw new Error('artifact_name is missing %name% variable');
@@ -25166,7 +25170,8 @@ function getInputs() {
         markdownFilename,
         artifactDownloadWorkflowNames,
         artifactName,
-        negativeDifferenceBy
+        negativeDifferenceBy,
+        retention: retentionDays
     };
     return inputs;
 }
