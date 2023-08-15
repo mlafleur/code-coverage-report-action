@@ -24379,7 +24379,8 @@ function run() {
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
         const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, negativeDifferenceBy } = (0, utils_1.getInputs)();
-        const map = Object.entries(headCoverage.files).map(([hash, file]) => {
+        let map = Object.entries(headCoverage.files)
+            .map(([hash, file]) => {
             if (baseCoverage === null) {
                 return [
                     file.relative,
@@ -24404,7 +24405,8 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 `${(0, utils_1.colorizePercentageByThreshold)(file.coverage, fileCoverageWarningMax, fileCoverageErrorMin)}`,
                 (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
             ];
-        });
+        })
+            .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         // Add a "summary row" showing changes in overall overage.
         map.push(yield addOverallRow(headCoverage, baseCoverage));
         const overallDifferencePercentage = baseCoverage

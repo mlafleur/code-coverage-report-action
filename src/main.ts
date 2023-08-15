@@ -81,52 +81,55 @@ async function generateMarkdown(
     markdownFilename,
     negativeDifferenceBy
   } = getInputs()
-  const map = Object.entries(headCoverage.files).map(([hash, file]) => {
-    if (baseCoverage === null) {
+
+  let map = Object.entries(headCoverage.files)
+    .map(([hash, file]) => {
+      if (baseCoverage === null) {
+        return [
+          file.relative,
+          `${colorizePercentageByThreshold(
+            file.coverage,
+            fileCoverageWarningMax,
+            fileCoverageErrorMin
+          )}`
+        ]
+      }
+
+      const baseCoveragePercentage = baseCoverage.files[hash]
+        ? baseCoverage.files[hash].coverage
+        : null
+
+      const differencePercentage = baseCoveragePercentage
+        ? roundPercentage(file.coverage - baseCoveragePercentage)
+        : null
+
+      if (
+        failOnNegativeDifference &&
+        negativeDifferenceBy === 'package' &&
+        differencePercentage !== null &&
+        differencePercentage < 0
+      ) {
+        core.setFailed(
+          `${headCoverage.files[hash].relative} coverage difference was ${differencePercentage}%`
+        )
+      }
+
       return [
         file.relative,
+        `${colorizePercentageByThreshold(
+          baseCoveragePercentage,
+          fileCoverageWarningMax,
+          fileCoverageErrorMin
+        )}`,
         `${colorizePercentageByThreshold(
           file.coverage,
           fileCoverageWarningMax,
           fileCoverageErrorMin
-        )}`
+        )}`,
+        colorizePercentageByThreshold(differencePercentage)
       ]
-    }
-
-    const baseCoveragePercentage = baseCoverage.files[hash]
-      ? baseCoverage.files[hash].coverage
-      : null
-
-    const differencePercentage = baseCoveragePercentage
-      ? roundPercentage(file.coverage - baseCoveragePercentage)
-      : null
-
-    if (
-      failOnNegativeDifference &&
-      negativeDifferenceBy === 'package' &&
-      differencePercentage !== null &&
-      differencePercentage < 0
-    ) {
-      core.setFailed(
-        `${headCoverage.files[hash].relative} coverage difference was ${differencePercentage}%`
-      )
-    }
-
-    return [
-      file.relative,
-      `${colorizePercentageByThreshold(
-        baseCoveragePercentage,
-        fileCoverageWarningMax,
-        fileCoverageErrorMin
-      )}`,
-      `${colorizePercentageByThreshold(
-        file.coverage,
-        fileCoverageWarningMax,
-        fileCoverageErrorMin
-      )}`,
-      colorizePercentageByThreshold(differencePercentage)
-    ]
-  })
+    })
+    .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
 
   // Add a "summary row" showing changes in overall overage.
   map.push(await addOverallRow(headCoverage, baseCoverage))
