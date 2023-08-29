@@ -26,9 +26,20 @@ jobs:
           filename: 'coverage/clover.xml'
           artifact_download_workflow_names: 'ci,cron'
           badge: true
+
+      - uses: ./
+        id: hide_unchanged_coverage_report
+        if: always()
+        with:
+          filename: 'coverage/clover.xml'
+          artifact_download_workflow_names: 'ci,cron'
+          badge: true
+          markdown_filename: 'hide-unchanged-coverage-report'
+
       - name: Add Coverage PR Comment
         uses: marocchino/sticky-pull-request-comment@v2
         if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
         with:
           recreate: true
           path: code-coverage-results.md
+          

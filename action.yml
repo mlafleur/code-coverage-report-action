@@ -55,6 +55,10 @@ inputs:
     description: 'The number of days to retain uploaded artifacts. When `null` (default), the default retention period for the repository is used.'
     required: false
     default: null
+  show_unchanged:
+    description: 'When `true` (default), the report will include all test assemblies in the final report. When `false`, the report will only show assemblies where coverage has changed.'
+    required: false
+    default: true
 
 outputs:
   file:

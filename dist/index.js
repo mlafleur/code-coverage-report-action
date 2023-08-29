@@ -24378,9 +24378,14 @@ function run() {
 }
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, negativeDifferenceBy } = (0, utils_1.getInputs)();
+        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, negativeDifferenceBy, showUnchanged } = (0, utils_1.getInputs)();
+        let results;
         const baseMap = Object.entries(headCoverage.files).map(([hash, file]) => {
             if (baseCoverage === null) {
+                results.push([
+                    file.relative,
+                    `${(0, utils_1.colorizePercentageByThreshold)(file.coverage, fileCoverageWarningMax, fileCoverageErrorMin)}`
+                ]);
                 return [
                     file.relative,
                     `${(0, utils_1.colorizePercentageByThreshold)(file.coverage, fileCoverageWarningMax, fileCoverageErrorMin)}`
@@ -24398,6 +24403,15 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 differencePercentage < 0) {
                 core.setFailed(`${headCoverage.files[hash].relative} coverage difference was ${differencePercentage}%`);
             }
+            if (showUnchanged && differencePercentage == 0) {
+                // skip rendering unchanged
+                results.push([
+                    file.relative,
+                    `${(0, utils_1.colorizePercentageByThreshold)(baseCoveragePercentage, fileCoverageWarningMax, fileCoverageErrorMin)}`,
+                    `${(0, utils_1.colorizePercentageByThreshold)(file.coverage, fileCoverageWarningMax, fileCoverageErrorMin)}`,
+                    (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
+                ]);
+            }
             return [
                 file.relative,
                 `${(0, utils_1.colorizePercentageByThreshold)(baseCoveragePercentage, fileCoverageWarningMax, fileCoverageErrorMin)}`,
@@ -24405,9 +24419,11 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
             ];
         });
-        const map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        let map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         // Add a "summary row" showing changes in overall overage.
         map.push(yield addOverallRow(headCoverage, baseCoverage));
+        results = results.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        results.push(yield addOverallRow(headCoverage, baseCoverage));
         const overallDifferencePercentage = baseCoverage
             ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
             : null;
@@ -24451,7 +24467,7 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
             summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=for-the-badge`, 'Code Coverage');
         }
         summary
-            .addTable([headers, ...map])
+            .addTable([headers, ...results])
             .addBreak()
             .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
         //If this is run after write the buffer is empty
@@ -25152,6 +25168,7 @@ function getInputs() {
         : 'package';
     const retentionString = core.getInput('retention_days') || undefined;
     const retentionDays = retentionString == undefined ? undefined : parseInt(retentionString);
+    const showUnchanged = core.getInput('show_unchanged') === 'true' ? true : false;
     const artifactName = core.getInput('artifact_name') || 'coverage-%name%';
     if (!artifactName.includes('%name%')) {
         throw new Error('artifact_name is missing %name% variable');
@@ -25172,7 +25189,8 @@ function getInputs() {
         artifactDownloadWorkflowNames,
         artifactName,
         negativeDifferenceBy,
-        retention: retentionDays
+        retention: retentionDays,
+        showUnchanged: showUnchanged
     };
     return inputs;
 }

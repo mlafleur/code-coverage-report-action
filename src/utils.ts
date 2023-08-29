@@ -352,6 +352,9 @@ export function getInputs(): Inputs {
   const retentionDays =
     retentionString == undefined ? undefined : parseInt(retentionString)
 
+  const showUnchanged =
+    core.getInput('show_unchanged') === 'true' ? true : false
+
   const artifactName = core.getInput('artifact_name') || 'coverage-%name%'
   if (!artifactName.includes('%name%')) {
     throw new Error('artifact_name is missing %name% variable')
@@ -377,7 +380,8 @@ export function getInputs(): Inputs {
     artifactDownloadWorkflowNames,
     artifactName,
     negativeDifferenceBy,
-    retention: retentionDays
+    retention: retentionDays,
+    showUnchanged: showUnchanged
   }
 
   return inputs

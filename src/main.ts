@@ -79,11 +79,23 @@ async function generateMarkdown(
     fileCoverageWarningMax,
     badge,
     markdownFilename,
-    negativeDifferenceBy
+    negativeDifferenceBy,
+    showUnchanged
   } = getInputs()
+
+  let results: string[][]
 
   const baseMap = Object.entries(headCoverage.files).map(([hash, file]) => {
     if (baseCoverage === null) {
+      results.push([
+        file.relative,
+        `${colorizePercentageByThreshold(
+          file.coverage,
+          fileCoverageWarningMax,
+          fileCoverageErrorMin
+        )}`
+      ])
+
       return [
         file.relative,
         `${colorizePercentageByThreshold(
@@ -113,6 +125,24 @@ async function generateMarkdown(
       )
     }
 
+    if (showUnchanged && differencePercentage == 0) {
+      // skip rendering unchanged
+      results.push([
+        file.relative,
+        `${colorizePercentageByThreshold(
+          baseCoveragePercentage,
+          fileCoverageWarningMax,
+          fileCoverageErrorMin
+        )}`,
+        `${colorizePercentageByThreshold(
+          file.coverage,
+          fileCoverageWarningMax,
+          fileCoverageErrorMin
+        )}`,
+        colorizePercentageByThreshold(differencePercentage)
+      ])
+    }
+
     return [
       file.relative,
       `${colorizePercentageByThreshold(
@@ -129,10 +159,13 @@ async function generateMarkdown(
     ]
   })
 
-  const map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+  let map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
 
   // Add a "summary row" showing changes in overall overage.
   map.push(await addOverallRow(headCoverage, baseCoverage))
+
+  results = results!.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+  results.push(await addOverallRow(headCoverage, baseCoverage))
 
   const overallDifferencePercentage = baseCoverage
     ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
@@ -197,7 +230,7 @@ async function generateMarkdown(
   }
 
   summary
-    .addTable([headers, ...map])
+    .addTable([headers, ...results])
     .addBreak()
     .addRaw(
       `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
