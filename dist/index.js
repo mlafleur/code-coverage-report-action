@@ -24412,6 +24412,9 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         let map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         // Add a "summary row" showing changes in overall overage.
         map.push(yield addOverallRow(headCoverage, baseCoverage));
+        if (onlyChanged) {
+            map = map.filter(x => x[4] != null && x[4].toString() != '0');
+        }
         const overallDifferencePercentage = baseCoverage
             ? (0, utils_1.roundPercentage)(headCoverage.coverage - baseCoverage.coverage)
             : null;
@@ -24454,11 +24457,10 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
         if (badge) {
             summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=for-the-badge`, 'Code Coverage');
         }
+        if (map.length > 0) {
+            summary.addTable([headers, ...map]);
+        }
         summary
-            .addTable([
-            headers,
-            ...map.filter(x => onlyChanged === true && x[4] != null && x[4] != '0')
-        ])
             .addBreak()
             .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
         //If this is run after write the buffer is empty
@@ -24481,8 +24483,8 @@ function addOverallRow(headCoverage, baseCoverage = null) {
             : null;
         if (baseCoverage === null) {
             return [
-                'Overall Coverage',
-                `${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}`
+                '<b>Overall Coverage</b>',
+                `<b>${(0, utils_1.colorizePercentageByThreshold)(headCoverage.coverage, 0, overallCoverageFailThreshold)}</b>`
             ];
         }
         return [

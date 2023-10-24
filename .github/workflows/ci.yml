@@ -32,3 +32,17 @@ jobs:
         with:
           recreate: true
           path: code-coverage-results.md
+      - uses: ./
+        id: code_coverage_report_action_onlychanged
+        if: always()
+        with:
+          filename: 'coverage/clover.xml'
+          artifact_download_workflow_names: 'ci,cron'
+          badge: true
+          only_changed: true
+      - name: Add Coverage PR Comment
+        uses: marocchino/sticky-pull-request-comment@v2
+        if: steps.code_coverage_report_action.outputs.file != '' && github.event_name == 'pull_request' && (success() || failure())
+        with:
+          recreate: true
+          path: code-coverage-results.md          
