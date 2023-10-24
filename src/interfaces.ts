@@ -24,6 +24,7 @@ export interface Inputs {
   artifactName: string
   negativeDifferenceBy: string
   retention: number | undefined
+  onlyChanged: boolean
 }
 
 export interface Files {

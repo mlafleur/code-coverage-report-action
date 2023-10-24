@@ -343,6 +343,8 @@ export function getInputs(): Inputs {
   const failOnNegativeDifference =
     core.getInput('fail_on_negative_difference') === 'true' ? true : false
 
+  const onlyChanged = core.getInput('only_changed') === 'true' ? true : false
+
   const negativeDifferenceBy =
     core.getInput('negative_difference_by') === 'overall'
       ? 'overall'
@@ -377,7 +379,8 @@ export function getInputs(): Inputs {
     artifactDownloadWorkflowNames,
     artifactName,
     negativeDifferenceBy,
-    retention: retentionDays
+    retention: retentionDays,
+    onlyChanged
   }
 
   return inputs

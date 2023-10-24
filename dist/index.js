@@ -24382,7 +24382,7 @@ function run() {
 }
 function generateMarkdown(headCoverage, baseCoverage = null) {
     return __awaiter(this, void 0, void 0, function* () {
-        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, negativeDifferenceBy } = (0, utils_1.getInputs)();
+        const { overallCoverageFailThreshold, failOnNegativeDifference, fileCoverageErrorMin, fileCoverageWarningMax, badge, markdownFilename, negativeDifferenceBy, onlyChanged } = (0, utils_1.getInputs)();
         const baseMap = Object.entries(headCoverage.files).map(([hash, file]) => {
             if (baseCoverage === null) {
                 return [
@@ -24409,7 +24409,7 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
                 (0, utils_1.colorizePercentageByThreshold)(differencePercentage)
             ];
         });
-        const map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
+        let map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         // Add a "summary row" showing changes in overall overage.
         map.push(yield addOverallRow(headCoverage, baseCoverage));
         const overallDifferencePercentage = baseCoverage
@@ -24455,7 +24455,10 @@ function generateMarkdown(headCoverage, baseCoverage = null) {
             summary.addImage(`https://img.shields.io/badge/${encodeURIComponent(`Code Coverage-${headCoverage.coverage}%-${color}`)}?style=for-the-badge`, 'Code Coverage');
         }
         summary
-            .addTable([headers, ...map])
+            .addTable([
+            headers,
+            ...map.filter(x => onlyChanged === true && x[4] != null && x[4] != '0')
+        ])
             .addBreak()
             .addRaw(`<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`);
         //If this is run after write the buffer is empty
@@ -25151,6 +25154,7 @@ function getInputs() {
     const fileCoverageErrorMin = parseInt(core.getInput('file_coverage_error_min') || '50');
     const fileCoverageWarningMax = parseInt(core.getInput('file_coverage_warning_max') || '75');
     const failOnNegativeDifference = core.getInput('fail_on_negative_difference') === 'true' ? true : false;
+    const onlyChanged = core.getInput('only_changed') === 'true' ? true : false;
     const negativeDifferenceBy = core.getInput('negative_difference_by') === 'overall'
         ? 'overall'
         : 'package';
@@ -25176,7 +25180,8 @@ function getInputs() {
         artifactDownloadWorkflowNames,
         artifactName,
         negativeDifferenceBy,
-        retention: retentionDays
+        retention: retentionDays,
+        onlyChanged
     };
     return inputs;
 }

@@ -84,7 +84,8 @@ async function generateMarkdown(
     fileCoverageWarningMax,
     badge,
     markdownFilename,
-    negativeDifferenceBy
+    negativeDifferenceBy,
+    onlyChanged
   } = getInputs()
 
   const baseMap = Object.entries(headCoverage.files).map(([hash, file]) => {
@@ -134,7 +135,7 @@ async function generateMarkdown(
     ]
   })
 
-  const map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+  let map = baseMap.sort((a, b) => (a![0] < b![0] ? -1 : a![0] > b![0] ? 1 : 0))
 
   // Add a "summary row" showing changes in overall overage.
   map.push(await addOverallRow(headCoverage, baseCoverage))
@@ -202,7 +203,10 @@ async function generateMarkdown(
   }
 
   summary
-    .addTable([headers, ...map])
+    .addTable([
+      headers,
+      ...map.filter(x => onlyChanged === true && x[4] != null && x[4] != '0')
+    ])
     .addBreak()
     .addRaw(
       `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
