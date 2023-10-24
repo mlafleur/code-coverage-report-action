@@ -56,6 +56,11 @@ async function run(): Promise<void> {
           core.info(`Uploading ${filename}`)
           await uploadArtifacts([filename], GITHUB_REF_NAME)
           core.info(`Complete`)
+
+          const headCoverage = await parseCoverage(filename)
+          if (headCoverage != null) {
+            await generateMarkdown(headCoverage)
+          }
         }
         break
       default:
@@ -79,7 +84,8 @@ async function generateMarkdown(
     fileCoverageWarningMax,
     badge,
     markdownFilename,
-    negativeDifferenceBy
+    negativeDifferenceBy,
+    onlyChanged
   } = getInputs()
 
   const baseMap = Object.entries(headCoverage.files).map(([hash, file]) => {
@@ -96,11 +102,11 @@ async function generateMarkdown(
 
     const baseCoveragePercentage = baseCoverage.files[hash]
       ? baseCoverage.files[hash].coverage
-      : null
+      : 0
 
     const differencePercentage = baseCoveragePercentage
       ? roundPercentage(file.coverage - baseCoveragePercentage)
-      : null
+      : roundPercentage(file.coverage)
 
     if (
       failOnNegativeDifference &&
@@ -129,10 +135,14 @@ async function generateMarkdown(
     ]
   })
 
-  const map = baseMap.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+  let map = baseMap.sort((a, b) => (a![0] < b![0] ? -1 : a![0] > b![0] ? 1 : 0))
 
   // Add a "summary row" showing changes in overall overage.
   map.push(await addOverallRow(headCoverage, baseCoverage))
+
+  if (onlyChanged) {
+    map = map.filter(x => x[4] != null && x[4].toString() != '0')
+  }
 
   const overallDifferencePercentage = baseCoverage
     ? roundPercentage(headCoverage.coverage - baseCoverage.coverage)
@@ -196,8 +206,11 @@ async function generateMarkdown(
     )
   }
 
+  if (map.length > 0) {
+    summary.addTable([headers, ...map])
+  }
+
   summary
-    .addTable([headers, ...map])
     .addBreak()
     .addRaw(
       `<i>Minimum allowed coverage is</i> <code>${overallCoverageFailThreshold}%</code>, this run produced</i> <code>${headCoverage.coverage}%</code>`
@@ -228,12 +241,12 @@ async function addOverallRow(
 
   if (baseCoverage === null) {
     return [
-      'Overall Coverage',
-      `${colorizePercentageByThreshold(
+      '<b>Overall Coverage</b>',
+      `<b>${colorizePercentageByThreshold(
         headCoverage.coverage,
         0,
         overallCoverageFailThreshold
-      )}`
+      )}</b>`
     ]
   }
 

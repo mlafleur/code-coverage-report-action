@@ -20,3 +20,10 @@ jobs:
           badge: true
           filename: 'coverage/clover.xml'
           retention_days: 1
+      - uses: ./
+        id: code_coverage_report_action_onlychanged
+        with:
+          badge: true
+          filename: 'coverage/clover.xml'
+          retention_days: 1
+          only_changed: true
